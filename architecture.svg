@@ -1,0 +1,86 @@
+<svg viewBox="0 0 900 620" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#444"/>
+    </marker>
+  </defs>
+
+  <rect width="900" height="620" fill="#ffffff"/>
+  <text x="450" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#1a1a1a">TripMate — Agent Architecture</text>
+
+  <!-- User -->
+  <rect x="30" y="270" width="120" height="60" rx="8" fill="#e8f0fe" stroke="#4a6fd6" stroke-width="1.5"/>
+  <text x="90" y="305" text-anchor="middle" font-size="14" fill="#1a1a1a">User</text>
+
+  <!-- Orchestrator -->
+  <rect x="230" y="230" width="220" height="140" rx="8" fill="#fff4e0" stroke="#d69a2d" stroke-width="1.5"/>
+  <text x="340" y="255" text-anchor="middle" font-size="14" font-weight="bold" fill="#1a1a1a">Agent / Orchestrator</text>
+  <text x="340" y="278" text-anchor="middle" font-size="11.5" fill="#333">TripMateAgent (main.py)</text>
+  <text x="340" y="296" text-anchor="middle" font-size="11.5" fill="#333">tool-use loop, dispatch,</text>
+  <text x="340" y="312" text-anchor="middle" font-size="11.5" fill="#333">error handling,</text>
+  <text x="340" y="328" text-anchor="middle" font-size="11.5" fill="#333">structured logging / trace</text>
+  <text x="340" y="352" text-anchor="middle" font-size="10.5" fill="#8a5a00" font-style="italic">raw Anthropic tool-calling loop</text>
+
+  <!-- LLM -->
+  <rect x="230" y="30" width="220" height="80" rx="8" fill="#f3e8fd" stroke="#8e4fd6" stroke-width="1.5"/>
+  <text x="340" y="60" text-anchor="middle" font-size="14" font-weight="bold" fill="#1a1a1a">LLM Provider</text>
+  <text x="340" y="80" text-anchor="middle" font-size="11.5" fill="#333">Anthropic Claude</text>
+  <text x="340" y="97" text-anchor="middle" font-size="11.5" fill="#333">(tool-use / function calling)</text>
+
+  <!-- RAG tool -->
+  <rect x="540" y="130" width="220" height="110" rx="8" fill="#e6f7ec" stroke="#2fa85a" stroke-width="1.5"/>
+  <text x="650" y="155" text-anchor="middle" font-size="14" font-weight="bold" fill="#1a1a1a">RAG Tool</text>
+  <text x="650" y="176" text-anchor="middle" font-size="11.5" fill="#333">search_destination_guide()</text>
+  <text x="650" y="194" text-anchor="middle" font-size="11.5" fill="#333">TF-IDF vector store</text>
+  <text x="650" y="212" text-anchor="middle" font-size="11.5" fill="#333">(in-memory, cosine similarity)</text>
+  <text x="650" y="230" text-anchor="middle" font-size="10.5" fill="#1a7a3a" font-style="italic">4-city destination data pack</text>
+
+  <!-- Weather tool -->
+  <rect x="540" y="280" width="220" height="90" rx="8" fill="#e6f7ec" stroke="#2fa85a" stroke-width="1.5"/>
+  <text x="650" y="305" text-anchor="middle" font-size="14" font-weight="bold" fill="#1a1a1a">Weather Tool</text>
+  <text x="650" y="326" text-anchor="middle" font-size="11.5" fill="#333">get_weather_forecast()</text>
+  <text x="650" y="344" text-anchor="middle" font-size="11.5" fill="#333">mock seasonal lookup table</text>
+  <text x="650" y="360" text-anchor="middle" font-size="10.5" fill="#1a7a3a" font-style="italic">(swappable for a live API)</text>
+
+  <!-- Data pack -->
+  <rect x="800" y="150" width="80" height="70" rx="6" fill="#f0f0f0" stroke="#888" stroke-width="1.2"/>
+  <text x="840" y="180" text-anchor="middle" font-size="10.5" fill="#333">destination_</text>
+  <text x="840" y="194" text-anchor="middle" font-size="10.5" fill="#333">data.json</text>
+
+  <!-- Logging -->
+  <rect x="230" y="450" width="220" height="80" rx="8" fill="#fdeaea" stroke="#d64f4f" stroke-width="1.5"/>
+  <text x="340" y="475" text-anchor="middle" font-size="14" font-weight="bold" fill="#1a1a1a">Structured Logs</text>
+  <text x="340" y="496" text-anchor="middle" font-size="11.5" fill="#333">JSON trace: tool calls,</text>
+  <text x="340" y="514" text-anchor="middle" font-size="11.5" fill="#333">reasoning, errors</text>
+
+  <!-- Arrows -->
+  <line x1="150" y1="295" x2="228" y2="285" stroke="#444" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="185" y="275" font-size="10.5" fill="#555">1. query</text>
+
+  <line x1="450" y1="270" x2="228" y2="290" stroke="#444" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="130" y="335" font-size="10.5" fill="#555">6. final answer</text>
+
+  <line x1="340" y1="228" x2="340" y2="112" stroke="#444" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="352" y="180" font-size="10.5" fill="#555">2. query + tool schemas</text>
+
+  <line x1="330" y1="112" x2="330" y2="228" stroke="#444" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="150" y="145" font-size="10.5" fill="#555">3. tool_use request (which tool + args)</text>
+
+  <line x1="450" y1="260" x2="538" y2="200" stroke="#444" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="455" y="240" font-size="10.5" fill="#555">4a.</text>
+
+  <line x1="538" y1="220" x2="450" y2="280" stroke="#444" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <line x1="450" y1="300" x2="538" y2="320" stroke="#444" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="455" y="315" font-size="10.5" fill="#555">4b.</text>
+
+  <line x1="538" y1="340" x2="450" y2="310" stroke="#444" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="470" y="400" font-size="10.5" fill="#555">5. tool result(s) fed back to LLM (loop repeats until final text)</text>
+
+  <line x1="760" y1="180" x2="798" y2="180" stroke="#888" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <line x1="340" y1="370" x2="340" y2="448" stroke="#999" stroke-width="1.3" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <text x="352" y="420" font-size="10.5" fill="#777">every step logged</text>
+
+  <text x="450" y="600" text-anchor="middle" font-size="11" fill="#777" font-style="italic">Flow: User -&gt; Orchestrator -&gt; LLM decides tool(s) -&gt; Orchestrator executes real tool(s) -&gt; result(s) returned to LLM -&gt; synthesized answer -&gt; User</text>
+</svg>
