@@ -21,21 +21,32 @@ inspectable reasoning trace and no fixed keyword-routing script.
 
 ## Setup & run instructions
 
-**Requirements:** Python 3.10+, an Anthropic API key.
+**Requirements:** Python 3.10+, and an LLM provider — either an Anthropic
+API key, or a local [Ollama](https://ollama.com) install (free, no key
+needed). The agent is provider-agnostic; `TRIPMATE_PROVIDER` in `.env`
+switches between them with no code changes.
 
 ```bash
 git clone <your-repo-url>
 cd tripmate
 pip install -r requirements.txt
-
 cp .env.example .env
-# then edit .env and set ANTHROPIC_API_KEY=sk-ant-...
 ```
+
+**Option A — Ollama (free, local, no API key):**
+```bash
+ollama serve                    # in a separate terminal, keep it running
+ollama pull llama3.1:8b
+```
+In `.env`, leave `TRIPMATE_PROVIDER=ollama` (the default).
+
+**Option B — Anthropic (hosted, needs billing/credits):**
+In `.env`, set `TRIPMATE_PROVIDER=anthropic` and `ANTHROPIC_API_KEY=sk-ant-...`.
 
 Run a single query:
 
 ```bash
-python main.py --query "What should I pack for Tokyo in December?" --verbose
+python main.py --query "What should I pack for Bangkok in July?" --verbose
 ```
 
 Or run interactively:
@@ -44,16 +55,16 @@ Or run interactively:
 python main.py
 ```
 
-Run the tests:
+Run the tests (no API key or Ollama needed for this — see below):
 
 ```bash
 python -m pytest tests/ -v
 ```
 
-No API key is needed to run the tests — the LLM's *decisions* are scripted
-via fake Anthropic client responses (see `tests/fakes.py`), while the real
-`rag_tool.py` / `weather_tool.py` execute for real in the integration test.
-Only the live CLI (`main.py`) needs a real key.
+The LLM's tool-selection *decisions* are scripted via a fake client
+(`tests/fakes.py`) in every test, while the real `rag_tool.py` /
+`weather_tool.py` execute for real in the integration test. Only the live
+CLI (`main.py`) needs a real provider (Ollama or Anthropic) configured.
 
 ---
 
@@ -68,7 +79,7 @@ User query
 Agent / Orchestrator (agent/orchestrator.py)
    │  sends query + tool schemas
    ▼
-LLM Provider (Anthropic Claude, tool-use API)
+LLM Provider — local Ollama (agent/ollama_client.py adapter)
    │  returns either final text OR a tool_use request
    ▼
 Orchestrator dispatches to the real tool:
@@ -78,6 +89,13 @@ Orchestrator dispatches to the real tool:
    ▼
 LLM synthesizes one final answer  →  returned to User
 ```
+
+`agent/orchestrator.py` only depends on a provider-agnostic client
+interface (`.messages.create(...)` returning `.content` blocks + a
+`.stop_reason`). `main.py` picks which concrete client to build
+(`anthropic.Anthropic()` or `agent.ollama_client.OllamaClient`) based on
+`TRIPMATE_PROVIDER` — the orchestration, tool dispatch, and logging code
+is identical either way.
 
 Every step (user query, each tool call + args + result, each LLM turn, and
 any error) is emitted as a structured JSON log line (`agent/logging_setup.py`),
@@ -92,7 +110,7 @@ From `agent/tool_schemas.py` (abbreviated — see the file for full text):
 **`search_destination_guide(query: str, city_filter?: str)`**
 > Search TripMate's destination knowledge base for visa/entry requirements,
 > best time to visit, local customs, packing advice, and safety notes.
-> Covers: Tokyo, Paris, Bangkok, Reykjavik. Not for live weather forecasts.
+> Covers: Tokyo, Reykjavik, Bangkok, Barcelona. Not for live weather forecasts.
 
 **`get_weather_forecast(city: str, date_or_month: str)`**
 > Get expected weather conditions and temperature range for a city during a
@@ -109,46 +127,48 @@ guessing.
 
 ## Example runs
 
-The following are real outputs from the orchestrator (tool execution is
-real; the LLM's tool-selection decision was scripted for these four
-snapshots so they're reproducible without a live API key — see
-`tests/test_tool_selection.py` and `tests/test_integration.py` for the
-same flows verified as tests). Logs are trimmed to the relevant lines.
+The destination content below is the real company-provided data pack
+(Tokyo, Reykjavik, Bangkok, Barcelona) ingested as-is into the RAG tool.
+Tool execution in these traces is real; running live against Ollama
+(`llama3.1:8b`) reproduces the same shape of trace, with natural-language
+phrasing varying slightly run to run since the LLM's exact wording isn't
+deterministic.
 
 ### 1. Single-tool — visa question
 
 ```
-Query: "Do I need a visa to visit Tokyo as an Indian citizen?"
+Query: "Do I need a visa to visit Japan?"
 ```
 ```json
-{"event": "tool_call_started", "tool": "search_destination_guide", "arguments": {"query": "do I need a visa to visit Japan as an Indian citizen", "city_filter": "Tokyo"}}
-{"event": "tool_call_succeeded", "tool": "search_destination_guide", "result": ["[Tokyo — visa] Indian passport holders need a visa to enter Japan for tourism; apply through a VFS-authorized center with proof of itinerary, hotel bookings, and bank statements. Processing typically takes 5-7 working days. ..."]}
+{"event": "tool_call_started", "tool": "search_destination_guide", "arguments": {"query": "do I need a visa to visit Japan", "city_filter": "Tokyo"}}
+{"event": "tool_call_succeeded", "tool": "search_destination_guide", "result": ["[Tokyo — visa] Many nationalities -- including most EU countries, the UK, the US, Canada, and Australia -- can enter Japan visa-free for short tourist stays (typically up to 90 days), though exact allowances vary by passport. ..."]}
 {"event": "agent_final_response", "turns": 2}
 ```
-> **TripMate:** Yes — as an Indian passport holder you need a visa for Japan.
-> Apply through a VFS-authorized center with proof of itinerary, hotel
-> bookings, and bank statements; processing takes about 5-7 working days.
+> **TripMate:** Most nationalities (EU, UK, US, Canada, Australia) can
+> enter Japan visa-free for short tourist stays up to 90 days, but exact
+> allowances vary by passport — make sure your passport has enough
+> remaining validity and you can show a return/onward ticket.
 
 ### 2. Multi-tool — packing question (RAG + Weather together)
 
 ```
-Query: "What should I pack for a trip to Reykjavik in January?"
+Query: "What should I pack for Bangkok in July?"
 ```
 ```json
-{"event": "tool_call_started", "tool": "search_destination_guide", "arguments": {"query": "packing tips", "city_filter": "Reykjavik"}}
-{"event": "tool_call_succeeded", "tool": "search_destination_guide", "result": ["[Reykjavik — packing_tips] Pack windproof and waterproof outer layers regardless of season... In winter, bring thermal wear, waterproof boots with good grip for ice, and a heavy coat."]}
-{"event": "tool_call_started", "tool": "get_weather_forecast", "arguments": {"city": "Reykjavik", "date_or_month": "January"}}
-{"event": "tool_call_succeeded", "tool": "get_weather_forecast", "result": {"city": "Reykjavik", "month": "January", "conditions": "cold, windy, dark, Northern Lights visible", "temp_range_c": [-3, 3], "source": "mock_lookup_table"}}
+{"event": "tool_call_started", "tool": "search_destination_guide", "arguments": {"query": "packing tips", "city_filter": "Bangkok"}}
+{"event": "tool_call_succeeded", "tool": "search_destination_guide", "result": ["[Bangkok — packing_tips] Lightweight, breathable clothing is recommended given the heat and humidity. A modest cover-up layer ... A compact umbrella or rain jacket is handy during the rainy season."]}
+{"event": "tool_call_started", "tool": "get_weather_forecast", "arguments": {"city": "Bangkok", "date_or_month": "July"}}
+{"event": "tool_call_succeeded", "tool": "get_weather_forecast", "result": {"city": "Bangkok", "month": "July", "conditions": "hot, frequent afternoon monsoon showers", "temp_range_c": [25, 33], "source": "mock_lookup_table"}}
 ```
-> **TripMate:** Pack heavy thermal layers, a windproof/waterproof outer
-> shell, and boots with good ice grip — Reykjavik in January runs about
-> -3 to 3°C with wind and possible snow, and the destination guide
-> recommends the same layered, weatherproof approach year-round.
+> **TripMate:** Pack lightweight, breathable clothing — Bangkok in July
+> runs 25-33°C with frequent afternoon monsoon showers, so bring a
+> compact umbrella or rain jacket, and a modest cover-up layer if you're
+> visiting any temples.
 
 ### 3. Out-of-scope request
 
 ```
-Query: "Can you book my flight to Paris for next month?"
+Query: "Can you book my flight to Barcelona?"
 ```
 No tool calls made — the model recognized this requires a real-world
 action it cannot perform.
@@ -156,20 +176,20 @@ action it cannot perform.
 > **TripMate:** I can't book flights or make any real-world bookings — I
 > can only help with trip-planning information like visas, weather,
 > customs, packing, and safety. Want me to check visa requirements or
-> weather for your trip instead?
+> weather for Barcelona instead?
 
 ### 4. Tool error handling — unsupported city
 
 ```
-Query: "What is the weather like in Atlantis in June?"
+Query: "What is the weather like in Rome in June?"
 ```
 ```json
-{"event": "tool_call_started", "tool": "get_weather_forecast", "arguments": {"city": "Atlantis", "date_or_month": "June"}}
-{"event": "tool_call_error", "tool": "get_weather_forecast", "error": "No mock weather data available for 'Atlantis' in June. Supported cities: ['bangkok', 'paris', 'reykjavik', 'tokyo']."}
+{"event": "tool_call_started", "tool": "get_weather_forecast", "arguments": {"city": "Rome", "date_or_month": "June"}}
+{"event": "tool_call_error", "tool": "get_weather_forecast", "error": "No mock weather data available for 'Rome' in June. Supported cities: ['bangkok', 'barcelona', 'reykjavik', 'tokyo']."}
 ```
-> **TripMate:** I don't have weather data for Atlantis — it's not one of
-> the destinations in my current database (Tokyo, Paris, Bangkok,
-> Reykjavik). Could you check the city name or ask about one of those?
+> **TripMate:** I don't have weather data for Rome — it's not one of the
+> destinations in my current database (Tokyo, Reykjavik, Bangkok,
+> Barcelona). Could you check the city name or ask about one of those?
 
 The tool raised a typed error (`WeatherToolError`); the orchestrator caught
 it, logged it, and fed it back to the LLM as an `is_error` tool result
@@ -180,58 +200,66 @@ inventing weather data.
 
 ## Design decisions & assumptions
 
-- **No agent framework (LangChain/LangGraph/CrewAI).** A raw Anthropic
-  tool-use loop (`agent/orchestrator.py`) is ~150 lines and keeps every
-  step of the control flow (turn loop, dispatch, error handling, message
+- **Provider-agnostic client interface, defaulting to local Ollama.**
+  `agent/orchestrator.py` depends only on a `.messages.create(...)`
+  interface returning normalized content blocks + a stop reason. This is
+  satisfied both by the real `anthropic.Anthropic()` SDK client and by
+  `agent/ollama_client.py`, a thin adapter that converts to/from Ollama's
+  local `/api/chat` tool-calling format. `main.py` picks the concrete
+  client based on `TRIPMATE_PROVIDER`, so the orchestration/logging code
+  never needs to know which provider is active. Ollama was used for the
+  primary demo to avoid requiring paid API credits; Anthropic is a
+  one-line `.env` change away, per the assessment's "any LLM provider"
+  allowance.
+- **No agent framework (LangChain/LangGraph/CrewAI).** A raw tool-use
+  loop (`agent/orchestrator.py`) is ~150 lines and keeps every step of
+  the control flow (turn loop, dispatch, error handling, message
   threading) fully visible and unit-testable without framework internals
-  getting in the way. For a 2-tool assistant this is the simpler and more
-  debuggable choice; a larger tool count or need for graph-like branching
-  would tip the balance toward LangGraph (see Future Improvements).
-- **TF-IDF instead of a hosted embedding model for RAG.** The corpus is
-  ~20 short chunks across 4 cities. TF-IDF + cosine similarity
-  (`tools/rag_tool.py`) is deterministic, has no external API dependency
-  at query time, and is trivial for a reviewer to run offline. Chunk text
-  is indexed together with its city/country/section labels so a query
-  that names a destination by name still matches even if the body text
-  doesn't repeat that name.
+  getting in the way.
+- **TF-IDF instead of a hosted embedding model for RAG**, with a small
+  built-in suffix-stripping stemmer (`tools/rag_tool.py`). The corpus is
+  ~20 short chunks across 4 cities. Deterministic, zero external API
+  dependency at query time, and trivial for a reviewer to run offline.
+  Chunk text is indexed together with its city/country/section labels so
+  a query naming a destination or country (e.g. "visa for Japan" when
+  the chunk is filed under city "Tokyo") still matches. The stemmer
+  handles common inflection mismatches between how a user phrases a
+  question and how the source document is worded (e.g. "pack" vs.
+  "packing", "custom" vs. "customs") — this was tuned against the real
+  company-provided documents, not synthetic test data.
+- **`city_filter` matches on city OR country** — a query like "visa for
+  Japan" should resolve to the Tokyo chunk even though the model may
+  reasonably pass either "Japan" or "Tokyo" as the filter argument.
 - **Mock weather lookup table (Option B) instead of a live API.** Keeps
   the demo deterministic, network-independent, and focused on agentic
-  reasoning rather than third-party API integration/rate limits. The
-  `get_weather_forecast()` signature and output schema are what the agent
-  depends on, so swapping in Open-Meteo later only means rewriting the
-  function body.
+  reasoning rather than third-party API integration/rate limits.
 - **Chunking strategy:** one chunk per (city, topic) pair — visa,
-  best-time-to-visit, customs, packing tips, safety — rather than
-  splitting by fixed token windows. Assessment source content is
-  naturally structured this way, and topic-aligned chunks retrieve more
-  cleanly than arbitrary windows for a corpus this small.
-- **Reasoning trace as structured JSON logs** rather than a separate
-  free-text "thinking" narration, so the trace is both human-readable
-  (via `--verbose`) and machine-parseable for future observability
-  tooling.
+  best-time-to-visit, customs, packing tips, safety — matching the
+  section structure of the provided source documents directly, rather
+  than splitting by fixed token windows.
+- **Reasoning trace as structured JSON logs** rather than free-text
+  narration, so the trace is both human-readable (via `--verbose`) and
+  machine-parseable for future observability tooling.
 - **Scope awareness is prompt-based, not a separate classifier tool** —
   the system prompt explicitly instructs the model to decline
-  out-of-scope real-world actions rather than fabricate a result. This is
-  simpler than a dedicated "scope check" tool and, in testing, reliably
-  caught the assessment's booking example.
+  out-of-scope real-world actions rather than fabricate a result.
 
 ## Known limitations
 
 - Tool *selection* correctness depends on the live LLM's judgment call
-  each time; it isn't hardcoded, so edge-case phrasing could occasionally
-  pick zero/one/two tools differently than expected. Automated tests cover
-  the orchestrator's handling of a given decision, not whether the live
-  model always makes the "ideal" decision.
-- The RAG tool only knows 4 cities; TF-IDF also has no semantic
-  understanding of synonyms it hasn't seen in the corpus (e.g. "gear to
-  bring" instead of "pack") — it can under-retrieve on very differently
-  worded queries.
+  each time. This is more pronounced with the local `llama3.1:8b` model
+  used for the free demo path than it would be with a larger hosted
+  model (Claude/GPT-4-class) — smaller models occasionally skip a tool
+  call it should have made, or pass slightly malformed arguments.
+  Automated tests cover the orchestrator's handling of a *given*
+  decision correctly; they don't guarantee the live model always makes
+  the ideal decision.
+- The RAG tool only knows 4 cities; TF-IDF (even with basic stemming)
+  has no deep semantic understanding of synonyms far outside the corpus
+  vocabulary — it can under-retrieve on very differently worded queries.
 - The weather tool returns one static seasonal range per month, not a
   real day-level forecast.
-- No conversation memory across CLI invocations in `--query` mode (the
-  interactive REPL only keeps memory for the current process run, and
-  each `agent.run()` call currently starts a fresh message list rather
-  than carrying prior turns).
+- No multi-turn conversation memory across separate `--query` invocations.
 - No caching/rate-limiting layer yet (see Scalability below).
 
 ## Scalability considerations (discussion only)
@@ -241,34 +269,29 @@ is O(n) per query and fine into the low thousands of chunks, but at
 "several hundred cities" the corpus should move to a proper vector store
 (FAISS or Chroma) with a real sentence-embedding model, ANN indexing
 (HNSW/IVF), and metadata filtering by city/country so retrieval stays
-sub-second. Chunking would also need to move from hand-authored sections
-to an automated pipeline (source docs → chunker → embedder → indexer) run
-as a batch job whenever the knowledge base is updated, rather than
-re-fitting one TF-IDF matrix on every process start.
+sub-second. Chunking would also move from hand-authored sections to an
+automated pipeline (source docs → chunker → embedder → indexer) run as a
+batch job whenever the knowledge base updates.
 
 **Avoiding redundant tool/LLM calls:** Cache RAG results and weather
 lookups keyed on `(normalized_query_or_city, month)` with a short TTL for
-weather (it changes) and a longer TTL for destination-guide content (it's
-mostly static) — e.g. Redis in front of both tools. For near-duplicate
-natural-language queries, a semantic cache (embed the query, check
-cosine similarity against recent cached queries above a threshold) would
-catch paraphrases that an exact-match cache misses.
+weather (it changes) and a longer TTL for destination-guide content
+(mostly static) — e.g. Redis in front of both tools. A semantic cache
+(embed the query, check similarity against recent cached queries) would
+also catch near-duplicate phrasings an exact-match cache misses.
 
-**Reducing LLM API cost at volume:** Cache final answers for identical or
-near-identical (query, resolved-tool-args) pairs; use a cheaper/smaller
-model for simple single-tool or no-tool queries and reserve the larger
-model for multi-tool synthesis; batch non-interactive workloads through
-the Anthropic Batch API where latency isn't critical; and trim the system
-prompt/tool schemas to only the tools relevant to a coarse query
-classification if the tool count grows large enough that schema tokens
-themselves become a meaningful cost.
+**Reducing LLM cost/compute at volume:** Cache final answers for
+identical or near-identical (query, resolved-tool-args) pairs; use a
+smaller/cheaper model for simple single-tool or no-tool queries and
+reserve a larger model for multi-tool synthesis; batch non-interactive
+workloads where latency isn't critical; trim the system prompt/tool
+schemas to only relevant tools if the tool count grows large.
 
 **Keeping tool-selection latency low as tools grow:** Beyond a handful of
-tools, sending every schema on every call adds both latency and cost.
-A cheap pre-routing step (embedding-based intent classification, or a
-small/fast model) can narrow the tool schemas sent to the main model down
-to a relevant subset per query, rather than always sending the full tool
-catalog.
+tools, sending every schema on every call adds latency and cost. A cheap
+pre-routing step (embedding-based intent classification, or a small/fast
+model) can narrow the tool schemas sent to the main model to a relevant
+subset per query, rather than always sending the full tool catalog.
 
 ## Future improvements
 
@@ -281,7 +304,8 @@ catalog.
   ("what about in July instead?") resolve without repeating the city.
 - Add a lightweight tool-selection eval harness that runs a fixed set of
   labeled queries against the live model periodically, to catch drift in
-  tool-selection behavior over model version upgrades.
+  tool-selection behavior across model/provider swaps (e.g. Ollama model
+  upgrades, or switching from Ollama to Anthropic).
 - Consider LangGraph if the tool count grows enough to need explicit
   branching/parallel-tool-call graphs rather than the current linear
   turn loop.

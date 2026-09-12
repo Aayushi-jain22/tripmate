@@ -19,13 +19,13 @@
   <text x="340" y="296" text-anchor="middle" font-size="11.5" fill="#333">tool-use loop, dispatch,</text>
   <text x="340" y="312" text-anchor="middle" font-size="11.5" fill="#333">error handling,</text>
   <text x="340" y="328" text-anchor="middle" font-size="11.5" fill="#333">structured logging / trace</text>
-  <text x="340" y="352" text-anchor="middle" font-size="10.5" fill="#8a5a00" font-style="italic">raw Anthropic tool-calling loop</text>
+  <text x="340" y="352" text-anchor="middle" font-size="10.5" fill="#8a5a00" font-style="italic">raw Ollama tool-calling loop</text>
 
   <!-- LLM -->
   <rect x="230" y="30" width="220" height="80" rx="8" fill="#f3e8fd" stroke="#8e4fd6" stroke-width="1.5"/>
   <text x="340" y="60" text-anchor="middle" font-size="14" font-weight="bold" fill="#1a1a1a">LLM Provider</text>
-  <text x="340" y="80" text-anchor="middle" font-size="11.5" fill="#333">Anthropic Claude</text>
-  <text x="340" y="97" text-anchor="middle" font-size="11.5" fill="#333">(tool-use / function calling)</text>
+  <text x="340" y="80" text-anchor="middle" font-size="11.5" fill="#333">Ollama (local, free)</text>
+  <text x="340" y="97" text-anchor="middle" font-size="11.5" fill="#333">llama3.1:8b — tool calling</text>
 
   <!-- RAG tool -->
   <rect x="540" y="130" width="220" height="110" rx="8" fill="#e6f7ec" stroke="#2fa85a" stroke-width="1.5"/>
