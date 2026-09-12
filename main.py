@@ -17,6 +17,28 @@ from agent.logging_setup import configure_logging
 from agent.orchestrator import TripMateAgent, AgentError
 
 
+def build_agent(settings, logger):
+    """Construct the right LLM client based on TRIPMATE_PROVIDER and hand
+    it to TripMateAgent. This is the only place that needs to know which
+    provider is active -- the orchestrator itself is provider-agnostic."""
+    if settings.provider == "ollama":
+        from agent.ollama_client import OllamaClient
+
+        client = OllamaClient(model=settings.ollama_model, host=settings.ollama_host)
+        return TripMateAgent(
+            api_key="unused-for-ollama",
+            model=settings.ollama_model,
+            logger=logger,
+            client=client,
+        )
+
+    return TripMateAgent(
+        api_key=settings.anthropic_api_key,
+        model=settings.model,
+        logger=logger,
+    )
+
+
 def print_trace(trace) -> None:
     if not trace:
         print("(no tools were called -- answered directly)")
@@ -53,11 +75,7 @@ def main() -> None:
     logger = configure_logging(settings.log_level)
 
     try:
-        agent = TripMateAgent(
-            api_key=settings.anthropic_api_key,
-            model=settings.model,
-            logger=logger,
-        )
+        agent = build_agent(settings, logger)
     except AgentError as exc:
         print(f"Startup error: {exc}")
         sys.exit(1)

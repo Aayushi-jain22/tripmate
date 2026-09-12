@@ -46,11 +46,11 @@ _fill("tokyo", [3, 4, 5], "mild, cherry blossoms, some rain", [10, 20])
 _fill("tokyo", [6, 7, 8], "hot, humid, rainy season in June", [23, 32])
 _fill("tokyo", [9, 10, 11], "mild, clear autumn skies", [12, 23])
 
-# Paris
-_fill("paris", [12, 1, 2], "cold, grey, occasional frost", [1, 8])
-_fill("paris", [3, 4, 5], "mild, showers likely", [7, 17])
-_fill("paris", [6, 7, 8], "warm, mostly dry, occasional heatwave", [16, 26])
-_fill("paris", [9, 10, 11], "cool, crisp, increasing rain", [8, 17])
+# Barcelona
+_fill("barcelona", [12, 1, 2], "mild, cool, occasional rain", [8, 15])
+_fill("barcelona", [3, 4, 5], "mild, pleasant, some rain", [12, 20])
+_fill("barcelona", [6, 7, 8], "hot, dry, peak tourist season", [22, 30])
+_fill("barcelona", [9, 10, 11], "warm, pleasant, decreasing crowds", [14, 24])
 
 # Bangkok
 _fill("bangkok", [12, 1, 2], "cool and dry by local standards, pleasant", [22, 32])

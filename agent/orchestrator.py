@@ -109,6 +109,10 @@ class TripMateAgent:
                 log_event(self._logger, "llm_call_failed", level="ERROR", error=str(exc), turn=turn)
                 raise AgentError(f"LLM call failed: {exc}") from exc
 
+            except Exception as exc:  # provider-agnostic fallback (e.g. Ollama connection errors)
+                log_event(self._logger, "llm_call_failed", level="ERROR", error=str(exc), turn=turn)
+                raise AgentError(f"LLM call failed: {exc}") from exc
+
             log_event(
                 self._logger,
                 "llm_turn_complete",

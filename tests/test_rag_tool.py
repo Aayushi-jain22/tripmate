@@ -6,7 +6,7 @@ from tools.rag_tool import search_destination_guide, known_cities, RAGToolError
 def test_known_cities_loaded():
     cities = known_cities()
     assert "Tokyo" in cities
-    assert "Paris" in cities
+    assert "Barcelona" in cities
     assert "Bangkok" in cities
     assert "Reykjavik" in cities
     assert len(cities) == 4
