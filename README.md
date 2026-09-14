@@ -21,10 +21,7 @@ inspectable reasoning trace and no fixed keyword-routing script.
 
 ## Setup & run instructions
 
-**Requirements:** Python 3.10+, and an LLM provider — either an Anthropic
-API key, or a local [Ollama](https://ollama.com) install (free, no key
-needed). The agent is provider-agnostic; `TRIPMATE_PROVIDER` in `.env`
-switches between them with no code changes.
+**Requirements:** Python 3.10+, and an LLM provider — either an Anthropic API key, or a local Ollama installation (free, no key needed). The agent is provider-agnostic; `TRIPMATE_PROVIDER` in `.env` switches between them with no code changes.
 
 ```bash
 git clone <your-repo-url>
@@ -33,15 +30,67 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-**Option A — Ollama (free, local, no API key):**
+### Ollama (free, local, no API key)
+
+**1. Install Ollama**
+
+Download and install Ollama from:
+
+https://ollama.com/
+
+Verify the installation:
+
 ```bash
-ollama serve                    # in a separate terminal, keep it running
+ollama --version
+```
+
+**2. Start the Ollama server**
+
+Open a separate terminal and run:
+
+```bash
+ollama serve
+```
+
+Keep this terminal running while using TripMate.
+
+**3. Download the Llama 3.1 8B model**
+
+Open another terminal and run:
+
+```bash
 ollama pull llama3.1:8b
 ```
-In `.env`, leave `TRIPMATE_PROVIDER=ollama` (the default).
 
-**Option B — Anthropic (hosted, needs billing/credits):**
-In `.env`, set `TRIPMATE_PROVIDER=anthropic` and `ANTHROPIC_API_KEY=sk-ant-...`.
+This downloads the model locally. This step is required only once.
+
+**4. Verify the model**
+
+```bash
+ollama list
+```
+
+Make sure `llama3.1:8b` appears in the list.
+
+**5. Test the model (optional)**
+
+```bash
+ollama run llama3.1:8b
+```
+
+Type a question to verify that the model is working.
+
+**6. Configure the provider**
+
+In `.env`, leave:
+
+```text
+TRIPMATE_PROVIDER=ollama
+```
+
+No API key is required when using Ollama.
+
+### Run TripMate
 
 Run a single query:
 
@@ -55,11 +104,12 @@ Or run interactively:
 python main.py
 ```
 
-Run the tests (no API key or Ollama needed for this — see below):
+### Run the tests
 
 ```bash
 python -m pytest tests/ -v
 ```
+
 
 The LLM's tool-selection *decisions* are scripted via a fake client
 (`tests/fakes.py`) in every test, while the real `rag_tool.py` /
