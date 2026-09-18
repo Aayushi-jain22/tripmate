@@ -31,7 +31,7 @@ def build_chat_model(settings: Settings) -> BaseChatModel:
 
         if not settings.anthropic_api_key:
             raise LLMConfigError(
-                "ANTHROPIC_API_KEY is not set. Copy .env.example to .env and add your "
+                "Copy .env.example to .env and add your "
                 "key, or set TRIPMATE_PROVIDER=ollama to use a local model instead."
             )
         return ChatAnthropic(model=settings.model, api_key=settings.anthropic_api_key, temperature=0)
