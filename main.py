@@ -13,30 +13,23 @@ import json
 import sys
 
 from agent.config import get_settings
+from agent.llm_factory import LLMConfigError, build_chat_model
 from agent.logging_setup import configure_logging
 from agent.orchestrator import TripMateAgent, AgentError
 
 
 def build_agent(settings, logger):
-    """Construct the right LLM client based on TRIPMATE_PROVIDER and hand
-    it to TripMateAgent. This is the only place that needs to know which
-    provider is active -- the orchestrator itself is provider-agnostic."""
-    if settings.provider == "ollama":
-        from agent.ollama_client import OllamaClient
+    """Build the right LangChain chat model for TRIPMATE_PROVIDER (see
+    agent/llm_factory.py) and hand it to TripMateAgent, which compiles the
+    LangGraph workflow around it. This is the only place that needs to
+    know which provider is active -- the graph and orchestrator are
+    provider-agnostic."""
+    try:
+        llm = build_chat_model(settings)
+    except LLMConfigError as exc:
+        raise AgentError(str(exc)) from exc
 
-        client = OllamaClient(model=settings.ollama_model, host=settings.ollama_host)
-        return TripMateAgent(
-            api_key="unused-for-ollama",
-            model=settings.ollama_model,
-            logger=logger,
-            client=client,
-        )
-
-    return TripMateAgent(
-        api_key=settings.anthropic_api_key,
-        model=settings.model,
-        logger=logger,
-    )
+    return TripMateAgent(llm=llm, logger=logger, max_turns=settings.max_agent_turns)
 
 
 def print_trace(trace) -> None:

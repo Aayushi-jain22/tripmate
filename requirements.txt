@@ -1,7 +1,10 @@
-anthropic>=0.40.0
+langgraph>=0.2.60
+langchain-core>=0.3.28
+langchain-anthropic>=0.3.3
+langchain-ollama>=0.2.1
 python-dotenv>=1.0.1
 scikit-learn>=1.4.0
 numpy>=1.26.0
 pytest>=8.0.0
 pytest-mock>=3.14.0
-ollama>=0.4.0
+

@@ -1,60 +1,13 @@
 """
-Tool schemas (as given to the LLM) for Anthropic's tool-use / function
-calling API. These are the exact descriptions the model sees when
-deciding which tool(s), if any, to call for a given query.
-"""
+System prompt for the agent.
 
-TOOL_SCHEMAS = [
-    {
-        "name": "search_destination_guide",
-        "description": (
-            "Search TripMate's destination knowledge base for information about "
-            "visa/entry requirements, best time to visit, local customs and etiquette, "
-            "general packing advice, and safety notes for a destination. "
-            "Currently covers: Tokyo, Paris, Bangkok, and Reykjavik. "
-            "Use this for any question about visas, customs, general safety, or "
-            "what a destination is generally like -- but NOT for the current/seasonal "
-            "weather forecast itself (use get_weather_forecast for that)."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "The natural-language question or topic to search for, e.g. 'do I need a visa for Japan' or 'what to pack for Iceland'.",
-                },
-                "city_filter": {
-                    "type": "string",
-                    "description": "Optional. Restrict the search to a single known city (e.g. 'Tokyo') if the user's query names one.",
-                },
-            },
-            "required": ["query"],
-        },
-    },
-    {
-        "name": "get_weather_forecast",
-        "description": (
-            "Get the expected weather conditions and temperature range for a city "
-            "during a given month or date. Use this whenever the user asks about "
-            "weather, temperature, or season, or when packing advice needs to reflect "
-            "actual seasonal conditions rather than general tips."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "city": {
-                    "type": "string",
-                    "description": "City name, e.g. 'Tokyo'.",
-                },
-                "date_or_month": {
-                    "type": "string",
-                    "description": "A month name, month number, or date, e.g. 'December', '12', or '2026-12-05'.",
-                },
-            },
-            "required": ["city", "date_or_month"],
-        },
-    },
-]
+Tool *schemas* are no longer hand-written here: with the LangGraph/
+LangChain framework, each `@tool`-decorated function in
+tools/langchain_tools.py generates its own JSON schema automatically from
+its type hints and docstring, and `llm.bind_tools(TOOLS)` (agent/graph.py)
+is what actually hands those schemas to the model. This file now only
+holds the behavioral instructions that aren't specific to any one tool.
+"""
 
 SYSTEM_PROMPT = """You are TripMate, an AI travel assistant that helps users plan trips.
 
