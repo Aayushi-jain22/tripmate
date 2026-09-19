@@ -1,4 +1,4 @@
-# TripMate — Agentic AI Travel Assistant (LangGraph edition)
+# TripMate — Agentic AI Travel Assistant (LangGraph)
 
 TripMate is the agentic core of an AI travel assistant: given a natural-language
 question about a destination, it dynamically decides which tool(s) it needs
@@ -7,9 +7,7 @@ neither), calls them, and synthesizes one coherent answer — with a full,
 inspectable reasoning trace.
 
 This is the **framework-based** version of the assistant, built on
-**LangGraph**. The initial submission used a hand-rolled tool-use loop
-(~150 lines in a single `orchestrator.py`); this version keeps the same
-tools and behavior but restructures the control flow as an explicit,
+**LangGraph**. Restructures the control flow as an explicit,
 declarative **agent graph**, with tool selection delegated entirely to
 the LLM via standard LangChain tool-calling — see
 [Design decisions](#design-decisions--assumptions) for why LangGraph, and
